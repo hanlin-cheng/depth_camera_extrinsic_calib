@@ -42,13 +42,13 @@ void keyboardEventOccurred (const pcl::visualization::KeyboardEvent& event, void
         next_iteration = true;
 }
 
-void toPointCloud(const Mat & depthImg, PointCloudT::Ptr & cloud, const Mat & intrinsic)
+void toPointCloud(const Mat & depthImg, PointCloudT::Ptr & cloud, const Mat & intrinsic， const float & depth)
 {
     for (unsigned int u = 0; u < depthImg.rows; ++u) 
     {
             for (unsigned int v = 0; v < depthImg.cols; ++v) 
             {
-                double z = (double)(depthImg.at<ushort>(u, v)) * 0.001;
+                double z = (double)(depthImg.at<ushort>(u, v)) * depth;
                 if (z <= 0.) 
                 {
                     continue;
@@ -105,16 +105,16 @@ int main (int argc, char* argv[])
     PointCloudT::Ptr cloud_icp_origin (new PointCloudT);
 
     // 检查程序输入命令的合法性  
-    if (argc != 5)  //如果只有一个命令说明没有指定目标点云，所以会提示用法
+    if (argc != 6)  //如果只有一个命令说明没有指定目标点云，所以会提示用法
     {
-        PCL_ERROR ("usage: pose_estimation_3d3d depth1 depth2 filter_dis iterations\n");
+        PCL_ERROR ("usage: depth_camera_extrinsic_calib depth1 depth2 depth filter_dis iterations\n");
         return (-1);
     }
 
     float filter_dis = 1.0;
-    filter_dis = stof (argv[3]);
+    filter_dis = stof (argv[4]);
     int iterations = 1; // 默认的ICP迭代次数
-    iterations = atoi (argv[4]);//传递参数的格式转化为int型
+    iterations = atoi (argv[5]);//传递参数的格式转化为int型
     
     if (iterations < 1)  //同时不能设置迭代次数为1
     {
@@ -127,8 +127,9 @@ int main (int argc, char* argv[])
     Mat depth2 = imread(argv[2], cv::IMREAD_UNCHANGED);       // 深度图为16位无符号数，单通道图像
     Mat K = (Mat_<double>(3, 3) << 425, 0, 320, 0, 425, 200, 0, 0, 1);
 
-    toPointCloud(depth1, cloud_in_origin, K);
-    toPointCloud(depth2, cloud_icp_origin, K);
+    float imageDepth = stof (argv[3]);
+    toPointCloud(depth1, cloud_in_origin, K, imageDepth);
+    toPointCloud(depth2, cloud_icp_origin, K, imageDepth);
 
     pcl::io::savePCDFileASCII("1_depth_origin.pcd", *cloud_in_origin);
     pcl::io::savePCDFileASCII("2_depth_origin.pcd", *cloud_icp_origin);
